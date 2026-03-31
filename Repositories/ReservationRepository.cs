@@ -28,12 +28,12 @@ public class ReservationRepository : IReservationRepository
         .ToListAsync();
   }
 
-// This method is added to get all reservations for a specific date, regardless of the classroom
-  public async Task<List<Reservation>> GetALLReservationByDateAsync(DateOnly date)
+  public async Task<List<Reservation>> GetAllReservationsByDateAsync(DateOnly date)
   {
     return await _context.Reservations
         .AsNoTracking()
         .Where(r => r.Date == date)
+        .OrderBy(r => r.StartTime)
         .ToListAsync();
   }
 }
