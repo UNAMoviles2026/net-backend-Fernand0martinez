@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using reservations_api.DTOs.Requests;
+using reservations_api.DTOs.Responses;
 using reservations_api.Services;
 
 namespace reservations_api.Controllers;
@@ -44,5 +45,14 @@ public class ReservationsController : ControllerBase
 
       throw;
     }
+  }
+
+  // This endpoint is added to get all reservations for a specific date, regardless of the classroom
+  [HttpGet]
+  public async Task<IActionResult> GetAllReservationsByDate([FromQuery] DateOnly date)
+  {
+    var reservations = await _reservationService.GetAllReservationsByDateAsync(date);
+  // If there are no reservations for the given date, return an empty list instead of null
+    return Ok(reservations ?? new List<ReservationResponse>());
   }
 }
