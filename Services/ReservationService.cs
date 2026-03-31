@@ -42,4 +42,11 @@ public class ReservationService : IReservationService
     return existingReservations.Any(r =>
         startTime < r.EndTime && endTime > r.StartTime);
   }
+
+  // This method is added to get all reservations for a specific date, regardless of the classroom
+  public async Task<List<ReservationResponse>> GetAllReservationsByDateAsync(DateOnly date )
+  {
+    var reservations =  await _reservationRepository.GetALLReservationByDateAsync(date);
+    return reservations.Select(ReservationMapper.ToResponse).ToList();
+  }
 }
