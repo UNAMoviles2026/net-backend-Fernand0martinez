@@ -52,31 +52,14 @@ public class ReservationsController : ControllerBase
   [HttpGet]
   [ProducesResponseType(typeof(List<ReservationResponse>), StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
-  public async Task<IActionResult> GetAllReservationsByDate([FromQuery, BindRequired] string date)
-  {
-    if (!ModelState.IsValid)
+  public async Task<IActionResult> GetAllReservationsByDate([FromQuery, BindRequired] DateOnly date)
     {
-      return ValidationProblem(ModelState);
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var reservations = await _reservationService.GetAllReservationsByDateAsync(date);
+        return Ok(reservations ?? new List<ReservationResponse>());
     }
-
-    if (string.IsNullOrWhiteSpace(date))
-    {
-      return BadRequest(new { message = "The 'date' query parameter is required and must be in yyyy-MM-dd format." });
-    }
-
-    var isValidDate = DateOnly.TryParseExact(
-        date,
-        "yyyy-MM-dd",
-        CultureInfo.InvariantCulture,
-        DateTimeStyles.None,
-        out var parsedDate);
-
-    if (!isValidDate)
-    {
-      return BadRequest(new { message = "Invalid date format. Use yyyy-MM-dd." });
-    }
-
-    var reservations = await _reservationService.GetAllReservationsByDateAsync(parsedDate);
-    return Ok(reservations ?? new List<ReservationResponse>());
-  }
 }
