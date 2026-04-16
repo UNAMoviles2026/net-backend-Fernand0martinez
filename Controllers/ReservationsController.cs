@@ -11,72 +11,85 @@ namespace reservations_api.Controllers;
 [Route("api/[controller]")]
 public class ReservationsController : ControllerBase
 {
-  private readonly IReservationService _reservationService;
+    private readonly IReservationService _reservationService;
 
-  public ReservationsController(IReservationService reservationService)
-  {
-    _reservationService = reservationService;
-  }
-
-  [HttpPost]
-  public async Task<IActionResult> Create([FromBody] CreateReservationRequest request)
-  {
-    if (!ModelState.IsValid)
+    public ReservationsController(IReservationService reservationService)
     {
-      return ValidationProblem(ModelState);
+        _reservationService = reservationService;
     }
 
-    try
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateReservationRequest request)
     {
-      var createdReservation = await _reservationService.CreateAsync(request);
-      return CreatedAtAction(
-          nameof(Create),
-          createdReservation);
-    }
-    catch (InvalidOperationException ex)
-    {
-      if (ex.Message.Contains("StartTime"))
-      {
-        return BadRequest(new { message = ex.Message });
-      }
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
 
-      if (ex.Message.Contains("Time conflict"))
-      {
-        return Conflict(new { message = ex.Message });
-      }
+        try
+        {
+            var createdReservation = await _reservationService.CreateAsync(request);
+            return CreatedAtAction(
+                nameof(Create),
+                createdReservation);
+        }
+        catch (InvalidOperationException ex)
+        {
+            if (ex.Message.Contains("StartTime"))
+            {
+                return BadRequest(new { message = ex.Message });
+            }
 
-      throw;
-    }
-  }
+            if (ex.Message.Contains("Time conflict"))
+            {
+                return Conflict(new { message = ex.Message });
+            }
 
-  [HttpGet]
-  [ProducesResponseType(typeof(List<ReservationResponse>), StatusCodes.Status200OK)]
-  [ProducesResponseType(StatusCodes.Status400BadRequest)]
-  public async Task<IActionResult> GetAllReservationsByDate([FromQuery, BindRequired] string date)
-  {
-    if (!ModelState.IsValid)
-    {
-      return ValidationProblem(ModelState);
+            throw;
+        }
     }
 
-    if (string.IsNullOrWhiteSpace(date))
+    [HttpGet]
+    [ProducesResponseType(typeof(List<ReservationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetAllReservationsByDate([FromQuery, BindRequired] string date)
     {
-      return BadRequest(new { message = "The 'date' query parameter is required and must be in yyyy-MM-dd format." });
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        if (string.IsNullOrWhiteSpace(date))
+        {
+            return BadRequest(new { message = "The 'date' query parameter is required and must be in yyyy-MM-dd format." });
+        }
+
+        var isValidDate = DateOnly.TryParseExact(
+            date,
+            "yyyy-MM-dd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var parsedDate);
+
+        if (!isValidDate)
+        {
+            return BadRequest(new { message = "Invalid date format. Use yyyy-MM-dd." });
+        }
+
+        var reservations = await _reservationService.GetAllReservationsByDateAsync(parsedDate);
+        return Ok(reservations ?? new List<ReservationResponse>());
     }
 
-    var isValidDate = DateOnly.TryParseExact(
-        date,
-        "yyyy-MM-dd",
-        CultureInfo.InvariantCulture,
-        DateTimeStyles.None,
-        out var parsedDate);
-
-    if (!isValidDate)
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteReservationById([FromRoute] Guid id)
     {
-      return BadRequest(new { message = "Invalid date format. Use yyyy-MM-dd." });
+        var reservationDeleted = await _reservationService.DeleteReservationByIdAsync(id);
+        if (reservationDeleted == false)
+        {
+            return NotFound();
+        }
+        return NoContent();
     }
-
-    var reservations = await _reservationService.GetAllReservationsByDateAsync(parsedDate);
-    return Ok(reservations ?? new List<ReservationResponse>());
-  }
 }
