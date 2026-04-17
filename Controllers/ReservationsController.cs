@@ -45,6 +45,7 @@ public class ReservationsController : ControllerBase
                 return Conflict(new { message = ex.Message });
             }
 
+<<<<<<< fernando-martinez-lab3-delete-reservation
             throw;
         }
     }
@@ -92,4 +93,19 @@ public class ReservationsController : ControllerBase
         }
         return NoContent();
     }
+=======
+  [HttpGet]
+  [ProducesResponseType(typeof(List<ReservationResponse>), StatusCodes.Status200OK)]
+  [ProducesResponseType(StatusCodes.Status400BadRequest)]
+  public async Task<IActionResult> GetAllReservationsByDate([FromQuery, BindRequired] DateOnly date)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var reservations = await _reservationService.GetAllReservationsByDateAsync(date);
+        return Ok(reservations ?? new List<ReservationResponse>());
+    }
+>>>>>>> main
 }
