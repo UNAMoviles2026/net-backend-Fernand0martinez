@@ -11,44 +11,89 @@ namespace reservations_api.Controllers;
 [Route("api/[controller]")]
 public class ReservationsController : ControllerBase
 {
-  private readonly IReservationService _reservationService;
+    private readonly IReservationService _reservationService;
 
-  public ReservationsController(IReservationService reservationService)
-  {
-    _reservationService = reservationService;
-  }
-
-  [HttpPost]
-  public async Task<IActionResult> Create([FromBody] CreateReservationRequest request)
-  {
-    if (!ModelState.IsValid)
+    public ReservationsController(IReservationService reservationService)
     {
-      return ValidationProblem(ModelState);
+        _reservationService = reservationService;
     }
 
-    try
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateReservationRequest request)
     {
-      var createdReservation = await _reservationService.CreateAsync(request);
-      return CreatedAtAction(
-          nameof(Create),
-          createdReservation);
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        try
+        {
+            var createdReservation = await _reservationService.CreateAsync(request);
+            return CreatedAtAction(
+                nameof(Create),
+                createdReservation);
+        }
+        catch (InvalidOperationException ex)
+        {
+            if (ex.Message.Contains("StartTime"))
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+
+            if (ex.Message.Contains("Time conflict"))
+            {
+                return Conflict(new { message = ex.Message });
+            }
+
+<<<<<<< fernando-martinez-lab3-delete-reservation
+            throw;
+        }
     }
-    catch (InvalidOperationException ex)
+
+    [HttpGet]
+    [ProducesResponseType(typeof(List<ReservationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetAllReservationsByDate([FromQuery, BindRequired] string date)
     {
-      if (ex.Message.Contains("StartTime"))
-      {
-        return BadRequest(new { message = ex.Message });
-      }
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
 
-      if (ex.Message.Contains("Time conflict"))
-      {
-        return Conflict(new { message = ex.Message });
-      }
+        if (string.IsNullOrWhiteSpace(date))
+        {
+            return BadRequest(new { message = "The 'date' query parameter is required and must be in yyyy-MM-dd format." });
+        }
 
-      throw;
+        var isValidDate = DateOnly.TryParseExact(
+            date,
+            "yyyy-MM-dd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var parsedDate);
+
+        if (!isValidDate)
+        {
+            return BadRequest(new { message = "Invalid date format. Use yyyy-MM-dd." });
+        }
+
+        var reservations = await _reservationService.GetAllReservationsByDateAsync(parsedDate);
+        return Ok(reservations ?? new List<ReservationResponse>());
     }
-  }
 
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteReservationById([FromRoute] Guid id)
+    {
+        var reservationDeleted = await _reservationService.DeleteReservationByIdAsync(id);
+        if (reservationDeleted == false)
+        {
+            return NotFound();
+        }
+        return NoContent();
+    }
+=======
   [HttpGet]
   [ProducesResponseType(typeof(List<ReservationResponse>), StatusCodes.Status200OK)]
   [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -62,4 +107,5 @@ public class ReservationsController : ControllerBase
         var reservations = await _reservationService.GetAllReservationsByDateAsync(date);
         return Ok(reservations ?? new List<ReservationResponse>());
     }
+>>>>>>> main
 }

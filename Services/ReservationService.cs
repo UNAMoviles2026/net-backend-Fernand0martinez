@@ -8,44 +8,49 @@ namespace reservations_api.Services;
 
 public class ReservationService : IReservationService
 {
-  private readonly IReservationRepository _reservationRepository;
+    private readonly IReservationRepository _reservationRepository;
 
-  public ReservationService(IReservationRepository reservationRepository)
-  {
-    _reservationRepository = reservationRepository;
-  }
-
-  public async Task<ReservationResponse> CreateAsync(CreateReservationRequest request)
-  {
-    if (request.StartTime >= request.EndTime)
+    public ReservationService(IReservationRepository reservationRepository)
     {
-      throw new InvalidOperationException("StartTime must be less than EndTime");
+        _reservationRepository = reservationRepository;
     }
 
-    var existingReservations = await _reservationRepository.GetByClassroomAndDateAsync(
-        request.ClassroomId,
-        request.Date);
-
-    if (HasOverlap(request.StartTime, request.EndTime, existingReservations))
+    public async Task<ReservationResponse> CreateAsync(CreateReservationRequest request)
     {
-      throw new InvalidOperationException("Time conflict with another reservation");
+        if (request.StartTime >= request.EndTime)
+        {
+            throw new InvalidOperationException("StartTime must be less than EndTime");
+        }
+
+        var existingReservations = await _reservationRepository.GetByClassroomAndDateAsync(
+            request.ClassroomId,
+            request.Date);
+
+        if (HasOverlap(request.StartTime, request.EndTime, existingReservations))
+        {
+            throw new InvalidOperationException("Time conflict with another reservation");
+        }
+
+        var reservation = ReservationMapper.ToEntity(request);
+        var createdReservation = await _reservationRepository.AddAsync(reservation);
+
+        return ReservationMapper.ToResponse(createdReservation);
     }
 
-    var reservation = ReservationMapper.ToEntity(request);
-    var createdReservation = await _reservationRepository.AddAsync(reservation);
+    private static bool HasOverlap(TimeOnly startTime, TimeOnly endTime, List<Reservation> existingReservations)
+    {
+        return existingReservations.Any(r =>
+            startTime < r.EndTime && endTime > r.StartTime);
+    }
 
-    return ReservationMapper.ToResponse(createdReservation);
-  }
+    public async Task<List<ReservationResponse>> GetAllReservationsByDateAsync(DateOnly date)
+    {
+        var reservations = await _reservationRepository.GetAllReservationsByDateAsync(date);
+        return reservations.Select(ReservationMapper.ToResponse).ToList();
+    }
 
-  private static bool HasOverlap(TimeOnly startTime, TimeOnly endTime, List<Reservation> existingReservations)
-  {
-    return existingReservations.Any(r =>
-        startTime < r.EndTime && endTime > r.StartTime);
-  }
-
-  public async Task<List<ReservationResponse>> GetAllReservationsByDateAsync(DateOnly date)
-  {
-    var reservations = await _reservationRepository.GetAllReservationsByDateAsync(date);
-    return reservations.Select(ReservationMapper.ToResponse).ToList();
-  }
+    public async Task<bool> DeleteReservationByIdAsync(Guid id)
+    {
+        return await _reservationRepository.DeleteReservationByIdAsync(id);
+    }
 }

@@ -4,8 +4,10 @@ namespace reservations_api.Repositories;
 
 public interface IReservationRepository
 {
-  Task<Reservation> AddAsync(Reservation reservation);
-  Task<List<Reservation>> GetByClassroomAndDateAsync(Guid classroomId, DateOnly date);
+    Task<Reservation> AddAsync(Reservation reservation);
+    Task<List<Reservation>> GetByClassroomAndDateAsync(Guid classroomId, DateOnly date);
 
-  Task<List<Reservation>> GetAllReservationsByDateAsync(DateOnly date);
+    Task<List<Reservation>> GetAllReservationsByDateAsync(DateOnly date);
+
+    Task<bool> DeleteReservationByIdAsync(Guid id);
 }
